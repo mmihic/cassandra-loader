@@ -18,20 +18,37 @@ package com.datastax.loader.parser;
 import java.lang.String;
 import java.nio.ByteBuffer;
 import java.lang.IndexOutOfBoundsException;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.exceptions.InvalidTypeException;
 
+import javax.xml.bind.DatatypeConverter;
+
 // ByteBuffer parser
 public class ByteBufferParser extends AbstractParser {
+    private static final Pattern HEX_BINARY = Pattern.compile("^0x([A-Fa-f0-9]+)$");
+
     public ByteBuffer parse(String toparse) {
-	if (null == toparse)
-	    return null;
-	ByteBuffer bb = ByteBuffer.allocate(toparse.length());
-	return bb.put(toparse.getBytes());
+        if (null == toparse)
+            return null;
+        Matcher m = HEX_BINARY.matcher(toparse);
+        if (m.matches()) {
+            return hexStringToByteBuffer(m.group(1));
+        }
+        ByteBuffer bb = ByteBuffer.allocate(toparse.length());
+        return bb.put(toparse.getBytes());
     }
 
+    private ByteBuffer hexStringToByteBuffer(String s) {
+        byte[] data = DatatypeConverter.parseHexBinary(s);
+        return ByteBuffer.wrap(data);
+    }
+
+
     public String format(Row row, int index) throws IndexOutOfBoundsException, InvalidTypeException {
-	// TODO: NOT SURE ABOUT THIS ONE
-	return row.isNull(index) ? null : row.getBytes(index).toString();
-    }    
+        // TODO: NOT SURE ABOUT THIS ONE
+        return row.isNull(index) ? null : row.getBytes(index).toString();
+    }
 }
